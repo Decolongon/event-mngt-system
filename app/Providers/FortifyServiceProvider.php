@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Laravel\Fortify\Contracts\LoginResponse;
 use Laravel\Fortify\Fortify;
 
 class FortifyServiceProvider extends ServiceProvider
@@ -18,7 +19,7 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->configureLoginResponse();
     }
 
     /**
@@ -76,5 +77,24 @@ class FortifyServiceProvider extends ServiceProvider
                 ($credentialId ?: $request->session()->getId()).'|'.$request->ip(),
             );
         });
+    }
+
+    private function configureLoginResponse(): void
+    {
+        $this->app->instance(LoginResponse::class, new class implements LoginResponse {
+        public function toResponse($request)
+        {
+            $request->session()->regenerate();
+            if( $request->user()->hasRole('organizer')) {
+                return redirect()->intended(route('dashboard'));
+            }
+
+            if( $request->user()->hasRole('attendee')) {
+                return redirect()->intended(route('attendee.dashboard'));
+            }
+
+           return redirect()->intended(route('login'));
+        }
+    });
     }
 }
