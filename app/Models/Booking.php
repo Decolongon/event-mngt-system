@@ -2,10 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Event;
-use App\Models\Payment;
-use App\Models\TicketType;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

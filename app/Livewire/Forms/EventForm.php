@@ -15,11 +15,17 @@ class EventForm extends Form
     use WithFileUploads;
 
     public $title = '';
+
     public $description = '';
+
     public $location = '';
+
     public $start_time = '';
+
     public $end_time = '';
+
     public $banner_image = null;
+
     public $status = 'draft';
 
     protected function rules(): array
@@ -68,5 +74,4 @@ class EventForm extends Form
 
         $event->update($validated);
     }
-
 }

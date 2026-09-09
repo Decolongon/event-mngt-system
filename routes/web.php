@@ -11,7 +11,7 @@ Route::middleware(['auth', 'verified', 'role:organizer'])->group(function () {
 });
 
 Route::middleware(['auth', 'verified', 'role:attendee'])->group(function () {
-   Route::livewire('attendee/dashboard', 'pages::attendees.dashboard')->name('attendee.dashboard');
+    Route::livewire('attendee/dashboard', 'pages::attendees.dashboard')->name('attendee.dashboard');
 });
 
 require __DIR__.'/settings.php';

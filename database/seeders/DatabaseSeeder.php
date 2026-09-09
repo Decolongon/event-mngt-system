@@ -23,22 +23,22 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
 
-       $organizer = Role::create(['name' => 'organizer']);
-       $attendee = Role::create(['name' => 'attendee']);
+        $organizer = Role::create(['name' => 'organizer']);
+        $attendee = Role::create(['name' => 'attendee']);
 
-         $user1 = User::factory()->create([
-                'name' => 'John Doe',
-                'email' => 'organizer@gmail.com',
-                'password' => bcrypt('12345678'),
-            ]);
-            
-         $user1->assignRole($organizer);
+        $user1 = User::factory()->create([
+            'name' => 'John Doe',
+            'email' => 'organizer@gmail.com',
+            'password' => bcrypt('12345678'),
+        ]);
+
+        $user1->assignRole($organizer);
 
         $user2 = User::factory()->create([
-                'name' => 'Jane Smith',
-                'email' => 'attendee@gmail.com',
-                'password' => bcrypt('12345678'),
-            ]);
+            'name' => 'Jane Smith',
+            'email' => 'attendee@gmail.com',
+            'password' => bcrypt('12345678'),
+        ]);
 
         $user2->assignRole($attendee);
     }

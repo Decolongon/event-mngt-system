@@ -4,10 +4,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-new #[Title('Dashboard')] #[Layout('layouts.app.attendee')] class extends Component
-{
-
-};
+new #[Title('Dashboard')] #[Layout('layouts.app.attendee')] class extends Component {};
 ?>
 
 <div>

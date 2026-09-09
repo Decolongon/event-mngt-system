@@ -13,10 +13,11 @@ trait HasEnumOptions
     {
         return array_column(self::cases(), 'name');
     }
+
     public static function options(): array
     {
         return array_map(
-            fn($case) => ['value' => $case->value, 'label' => $case->name],
+            fn ($case) => ['value' => $case->value, 'label' => $case->name],
             self::cases()
         );
     }

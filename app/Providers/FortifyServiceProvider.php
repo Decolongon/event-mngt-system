@@ -81,20 +81,21 @@ class FortifyServiceProvider extends ServiceProvider
 
     private function configureLoginResponse(): void
     {
-        $this->app->instance(LoginResponse::class, new class implements LoginResponse {
-        public function toResponse($request)
+        $this->app->instance(LoginResponse::class, new class implements LoginResponse
         {
-            $request->session()->regenerate();
-            if( $request->user()->hasRole('organizer')) {
-                return redirect()->intended(route('dashboard'));
-            }
+            public function toResponse($request)
+            {
+                $request->session()->regenerate();
+                if ($request->user()->hasRole('organizer')) {
+                    return redirect()->intended(route('dashboard'));
+                }
 
-            if( $request->user()->hasRole('attendee')) {
-                return redirect()->intended(route('attendee.dashboard'));
-            }
+                if ($request->user()->hasRole('attendee')) {
+                    return redirect()->intended(route('attendee.dashboard'));
+                }
 
-           return redirect()->intended(route('login'));
-        }
-    });
+                return redirect()->intended(route('login'));
+            }
+        });
     }
 }

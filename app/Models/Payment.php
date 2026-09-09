@@ -2,11 +2,9 @@
 
 namespace App\Models;
 
-use App\Models\Booking;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
 
 #[Fillable(['booking_id', 'payment_method', 'amount', 'status'])]
 class Payment extends Model
