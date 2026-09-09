@@ -6,6 +6,8 @@ Route::view('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified', 'role:organizer'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
+
+    Route::livewire('organizer/event', 'pages::organizers.event')->name('organizer.event');
 });
 
 Route::middleware(['auth', 'verified', 'role:attendee'])->group(function () {

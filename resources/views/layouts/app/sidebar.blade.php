@@ -20,6 +20,11 @@
                     <flux:sidebar.item icon="home" :href="$dashboardHref" :current="$dashboardCurrent" wire:navigate>
                         {{ __('Dashboard') }}
                     </flux:sidebar.item>
+                    @if (! $isAttendee)
+                        <flux:sidebar.item icon="calendar" :href="route('organizer.event')" :current="request()->routeIs('organizer.event')" wire:navigate>
+                            {{ __('Events') }}
+                        </flux:sidebar.item>
+                    @endif
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 
