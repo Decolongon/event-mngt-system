@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Event;
+use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 new class extends Component
@@ -11,7 +12,7 @@ new class extends Component
 
 <div
     class="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-700 dark:bg-zinc-900"
-    wire:key="event-{{ $event->id }}"
+    wire:key="event-{{ $event->id }}. '-'. {{ $event->status }}"
 >
     <div class="min-w-0 flex-1">
         <p class="truncate font-medium text-zinc-900 dark:text-zinc-100">{{ $event->title }}</p>
@@ -39,9 +40,8 @@ new class extends Component
             default => 'zinc',
         };
     @endphp
-    <flux:badge
-        :color="$badgeColor"
-        size="sm"
-        class="shrink-0 self-start sm:self-center"
-    >{{ ucfirst($status) }}</flux:badge>
+    <div class="flex items-center gap-2 shrink-0 self-start sm:self-center">
+        <flux:badge :color="$badgeColor" size="sm">{{ ucfirst($status) }}</flux:badge>
+        {{ $slots['statusUpdate'] }}
+    </div>
 </div>

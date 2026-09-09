@@ -37,6 +37,25 @@ new #[Title('Create Event')] class extends Component
             ->latest()
             ->get();
     }
+
+    public function updateStatus(int $eventId, string $status): void
+    {
+        $validated = validator(
+            ['status' => $status],
+            ['status' => \Illuminate\Validation\Rule::enum(\App\Enums\EventStatus::class)]
+        )->validate();
+
+        $event = Event::where('organizer_id', Auth::id())->findOrFail($eventId);
+        $event->update(['status' => $validated['status']]);
+
+        unset($this->events);
+
+        Flux::toast(
+            heading: __('Status updated'),
+            text: __('Event status changed to :status.', ['status' => ucfirst($validated['status'])]),
+            variant: 'success',
+        );
+    }
 };
 ?>
 
@@ -132,7 +151,22 @@ new #[Title('Create Event')] class extends Component
 
         <div class="space-y-3">
             @forelse ($this->events as $event)
-                <livewire:event-item :event="$event" :wire:key="'event-'.$event->id" />
+                @php $statusVal = $event->status instanceof \BackedEnum ? $event->status->value : $event->status; @endphp
+                <livewire:event-item :event="$event" :wire:key="'event-'.$event->id.'-'.$statusVal">
+                    <livewire:slot name="statusUpdate">
+                        <flux:dropdown position="bottom" align="end">
+                            <flux:button variant="ghost" size="sm" icon-trailing="chevron-down" class="shrink-0">
+                                {{ __('Update') }}
+                            </flux:button>
+                            <flux:menu>
+                                <flux:menu.item wire:click="updateStatus({{ $event->id }}, 'draft')">{{ __('Draft') }}</flux:menu.item>
+                                <flux:menu.item wire:click="updateStatus({{ $event->id }}, 'published')">{{ __('Published') }}</flux:menu.item>
+                                <flux:menu.item wire:click="updateStatus({{ $event->id }}, 'cancelled')">{{ __('Cancelled') }}</flux:menu.item>
+                                <flux:menu.item wire:click="updateStatus({{ $event->id }}, 'completed')">{{ __('Completed') }}</flux:menu.item>
+                            </flux:menu>
+                        </flux:dropdown>
+                    </livewire:slot>
+                </livewire:event-item>
             @empty
                 <div class="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/50 p-8 text-center dark:border-zinc-700 dark:bg-zinc-900/50">
                     <div class="mx-auto flex size-10 items-center justify-center rounded-full border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
