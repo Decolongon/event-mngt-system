@@ -4,9 +4,11 @@ namespace App\Livewire\Forms;
 
 use App\Enums\EventStatus;
 use App\Models\Event;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\Form;
 use Livewire\WithFileUploads;
 
@@ -80,13 +82,13 @@ class EventForm extends Form
 
         $validated['slug'] = Str::slug($validated['title']);
 
-        if (isset($validated['banner_image']) && $validated['banner_image'] instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+        if (isset($validated['banner_image']) && $validated['banner_image'] instanceof TemporaryUploadedFile) {
             $validated['banner_image'] = $validated['banner_image']->store('events', 'public');
         } elseif ($isExistingString) {
             $validated['banner_image'] = $event->banner_image;
         } elseif (empty($validated['banner_image'])) {
             $validated['banner_image'] = $event->banner_image;
-        } elseif ($validated['banner_image'] instanceof \Illuminate\Http\UploadedFile) {
+        } elseif ($validated['banner_image'] instanceof UploadedFile) {
             $validated['banner_image'] = $validated['banner_image']->store('events', 'public');
         }
 

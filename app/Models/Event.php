@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use App\Enums\EventStatus;
+use App\Policies\EventPolicy;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['organizer_id', 'title', 'slug', 'description', 'location', 'start_time', 'end_time', 'banner_image', 'status'])]
+#[UsePolicy(EventPolicy::class)]
 class Event extends Model
 {
     protected function casts(): array

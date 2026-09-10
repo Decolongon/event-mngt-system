@@ -7,7 +7,6 @@ use Livewire\Component;
 
 new class extends Component
 {
-    
     public Event $event;
 
     #[On('event-updated')]
@@ -48,7 +47,7 @@ new class extends Component
             default => 'zinc',
         };
     @endphp
-    <div class="flex items-center gap-2 shrink-0 self-start sm:self-center">
+    <div class="flex shrink-0 items-center gap-2 self-start sm:self-center">
         <flux:badge :color="$badgeColor" size="sm">{{ ucfirst($status) }}</flux:badge>
         {{ $slots['statusUpdate'] }}
     </div>
