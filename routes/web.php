@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\EventPermissionEnum;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -7,7 +8,7 @@ Route::view('/', 'welcome')->name('home');
 Route::middleware(['auth', 'verified', 'role:organizer'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
 
-    Route::livewire('organizer/event', 'pages::organizers.event')->name('organizer.event');
+    Route::livewire('organizer/event', 'pages::organizers.event')->name('organizer.event')->middleware('permission:'.EventPermissionEnum::VIEW_EVENTS->value);
 });
 
 Route::middleware(['auth', 'verified', 'role:attendee'])->group(function () {
