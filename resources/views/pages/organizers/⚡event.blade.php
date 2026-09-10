@@ -10,17 +10,39 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
-
+use Livewire\Attributes\Locked;
 new #[Title('Create Event')] class extends Component
 {
     use WithFileUploads;
 
     public EventForm $form;
 
+    #[Locked]
+    public ?int $editingEventId = null;
+
+    public function openCreateModal(): void
+    {
+        $this->form->reset();
+        $this->editingEventId = null;
+
+        Flux::modal('create-event')->show();
+    }
+
+    public function cancelCreate(): void
+    {
+        $this->form->reset();
+
+        Flux::modal('create-event')->close();
+    }
+
     public function createEvent(): void
     {
         $this->form->store();
         $this->form->reset();
+        unset($this->events);
+        $this->dispatch('event-updated');
+
+        Flux::modal('create-event')->close();
 
         Flux::toast(
             heading: 'Event created',
@@ -56,90 +78,68 @@ new #[Title('Create Event')] class extends Component
             variant: 'success',
         );
     }
+
+
+    public function editEvent(int $eventId): void
+    {
+        $event = Event::where('organizer_id', Auth::id())->findOrFail($eventId);
+        $this->form->setEvent($event);
+        $this->editingEventId = $event->id;
+
+        Flux::modal('edit-event')->show();
+    }
+
+    public function updateEvent(): void
+    {
+        $event = Event::where('organizer_id', Auth::id())->findOrFail($this->editingEventId);
+        $this->form->update($event);
+
+        $this->editingEventId = null;
+        $this->form->reset();
+        unset($this->events);
+
+        $this->dispatch('event-updated');
+        Flux::modal('edit-event')->close();
+
+        Flux::toast(
+            heading: __('Event updated'),
+            text: __('Event has been updated successfully.'),
+            variant: 'success',
+        );
+    }
+
+    public function cancelEdit(): void
+    {
+        $this->editingEventId = null;
+        $this->form->reset();
+        Flux::modal('edit-event')->close();
+    }
+
+    public function deleteEvent(int $eventId): void
+    {
+        $event = Event::where('organizer_id', Auth::id())->findOrFail($eventId);
+        $event->delete();
+
+        $this->dispatch('event-updated');
+        unset($this->events);
+
+        Flux::toast(
+            heading: __('Event deleted'),
+            text: __('Event has been deleted successfully.'),
+            variant: 'success',
+        );
+    }
 };
 ?>
 
 <div class="flex w-full flex-col gap-8">
     <section class="w-full max-w-3xl">
-        <div class="mb-6">
-            <flux:heading size="xl" level="1">{{ __('Create Event') }}</flux:heading>
-            <flux:subheading>{{ __('Add a new event and share it with your attendees.') }}</flux:subheading>
-        </div>
-
-        <div class="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8 dark:border-zinc-700 dark:bg-zinc-900">
-            <form wire:submit="createEvent" class="space-y-6">
-                <flux:field>
-                    <flux:label badge="{{ __('Required') }}">{{ __('Event Title') }}</flux:label>
-                    <flux:input wire:model="form.title" placeholder="{{ __('Summer Music Festival 2026') }}" />
-                    <flux:error name="form.title" />
-                </flux:field>
-
-                <flux:field>
-                    <flux:label>{{ __('Description') }}</flux:label>
-                    <flux:textarea
-                        wire:model="form.description"
-                        placeholder="{{ __('Tell attendees what makes this event special...') }}"
-                        rows="4"
-                    />
-                    <flux:description>{{ __('Max 255 characters.') }}</flux:description>
-                    <flux:error name="form.description" />
-                </flux:field>
-
-                <flux:field>
-                    <flux:label badge="{{ __('Required') }}">{{ __('Location') }}</flux:label>
-                    <flux:input
-                        wire:model="form.location"
-                        placeholder="{{ __('Manila, Philippines or Online') }}"
-                        icon="map-pin"
-                    />
-                    <flux:error name="form.location" />
-                </flux:field>
-
-                <div class="grid gap-6 md:grid-cols-2">
-                    <flux:field>
-                        <flux:label badge="{{ __('Required') }}">{{ __('Start Time') }}</flux:label>
-                        <flux:input wire:model="form.start_time" type="datetime-local" max="9999-12-31T23:59" />
-                        <flux:error name="form.start_time" />
-                    </flux:field>
-
-                    <flux:field>
-                        <flux:label badge="{{ __('Required') }}">{{ __('End Time') }}</flux:label>
-                        <flux:input wire:model="form.end_time" type="datetime-local" max="9999-12-31T23:59" />
-                        <flux:error name="form.end_time" />
-                    </flux:field>
-                </div>
-
-                <flux:field>
-                    <flux:label>{{ __('Banner Image') }}</flux:label>
-                    @if ($form->banner_image && is_string($form->banner_image) === false)
-                        <div class="mb-3 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
-                            <img
-                                src="{{ $form->banner_image->temporaryUrl() }}"
-                                alt="Preview"
-                                class="h-48 w-full object-cover"
-                            />
-                        </div>
-                    @endif
-                    <flux:input wire:model="form.banner_image" type="file" accept="image/*" />
-                    <flux:description>{{ __('PNG, JPG up to 2MB.') }}</flux:description>
-                    <flux:error name="form.banner_image" />
-                </flux:field>
-
-                <flux:field>
-                    <flux:label>{{ __('Status') }}</flux:label>
-                    <flux:select wire:model="form.status" placeholder="{{ __('Choose status...') }}">
-                        <flux:select.option value="draft">{{ __('Draft') }}</flux:select.option>
-                        <flux:select.option value="published">{{ __('Published') }}</flux:select.option>
-                        <flux:select.option value="cancelled">{{ __('Cancelled') }}</flux:select.option>
-                        <flux:select.option value="completed">{{ __('Completed') }}</flux:select.option>
-                    </flux:select>
-                    <flux:error name="form.status" />
-                </flux:field>
-
-                <div class="flex items-center justify-end gap-3 pt-2">
-                    <flux:button type="submit" variant="primary" icon="plus"> {{ __('Create Event') }} </flux:button>
-                </div>
-            </form>
+        <div class="mb-6 flex items-center justify-between gap-4">
+            <div>
+                <flux:heading size="xl" level="1">{{ __('Create Event') }}</flux:heading>
+                <flux:subheading>{{ __('Add a new event and share it with your attendees.') }}</flux:subheading>
+            </div>
+            <flux:button wire:click="openCreateModal" variant="primary" icon="plus" class="shrink-0">{{ __('Create Event') }}</flux:button>
         </div>
     </section>
 
@@ -155,14 +155,17 @@ new #[Title('Create Event')] class extends Component
                 <livewire:event-item :event="$event" :wire:key="'event-'.$event->id.'-'.$statusVal">
                     <livewire:slot name="statusUpdate">
                         <flux:dropdown position="bottom" align="end">
-                            <flux:button variant="ghost" size="sm" icon-trailing="chevron-down" class="shrink-0">
-                                {{ __('Update') }}
-                            </flux:button>
+                            <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" class="shrink-0" />
                             <flux:menu>
-                                <flux:menu.item wire:click="updateStatus({{ $event->id }}, 'draft')">{{ __('Draft') }}</flux:menu.item>
-                                <flux:menu.item wire:click="updateStatus({{ $event->id }}, 'published')">{{ __('Published') }}</flux:menu.item>
-                                <flux:menu.item wire:click="updateStatus({{ $event->id }}, 'cancelled')">{{ __('Cancelled') }}</flux:menu.item>
-                                <flux:menu.item wire:click="updateStatus({{ $event->id }}, 'completed')">{{ __('Completed') }}</flux:menu.item>
+                                <flux:menu.item wire:click="editEvent({{ $event->id }})" icon="pencil-square">{{ __('Edit') }}</flux:menu.item>
+                                <flux:menu.item wire:click="deleteEvent({{ $event->id }})" wire:confirm="{{ __('Are you sure you want to delete this event? This cannot be undone.') }}" icon="trash" variant="danger">{{ __('Delete') }}</flux:menu.item>
+                                <flux:menu.separator />
+                                <flux:menu.group heading="{{ __('Change status') }}">
+                                    <flux:menu.item wire:click="updateStatus({{ $event->id }}, 'draft')">{{ __('Draft') }}</flux:menu.item>
+                                    <flux:menu.item wire:click="updateStatus({{ $event->id }}, 'published')">{{ __('Published') }}</flux:menu.item>
+                                    <flux:menu.item wire:click="updateStatus({{ $event->id }}, 'cancelled')">{{ __('Cancelled') }}</flux:menu.item>
+                                    <flux:menu.item wire:click="updateStatus({{ $event->id }}, 'completed')">{{ __('Completed') }}</flux:menu.item>
+                                </flux:menu.group>
                             </flux:menu>
                         </flux:dropdown>
                     </livewire:slot>
@@ -178,4 +181,156 @@ new #[Title('Create Event')] class extends Component
             @endforelse
         </div>
     </section>
+
+    <flux:modal name="create-event" class="max-w-2xl" variant="flyout">
+        <form wire:submit="createEvent" class="space-y-6">
+            <div>
+                <flux:heading size="lg">{{ __('Create Event') }}</flux:heading>
+                <flux:subheading>{{ __('Add a new event and share it with your attendees.') }}</flux:subheading>
+            </div>
+
+            <flux:field>
+                <flux:label badge="{{ __('Required') }}">{{ __('Event Title') }}</flux:label>
+                <flux:input wire:model="form.title" placeholder="{{ __('Summer Music Festival 2026') }}" />
+                <flux:error name="form.title" />
+            </flux:field>
+
+            <flux:field>
+                <flux:label>{{ __('Description') }}</flux:label>
+                <flux:textarea wire:model="form.description" placeholder="{{ __('Tell attendees what makes this event special...') }}" rows="4" />
+                <flux:description>{{ __('Max 255 characters.') }}</flux:description>
+                <flux:error name="form.description" />
+            </flux:field>
+
+            <flux:field>
+                <flux:label badge="{{ __('Required') }}">{{ __('Location') }}</flux:label>
+                <flux:input wire:model="form.location" placeholder="{{ __('Manila, Philippines or Online') }}" icon="map-pin" />
+                <flux:error name="form.location" />
+            </flux:field>
+
+            <div class="grid gap-6 md:grid-cols-2">
+                <flux:field>
+                    <flux:label badge="{{ __('Required') }}">{{ __('Start Time') }}</flux:label>
+                    <flux:input wire:model="form.start_time" type="datetime-local" max="9999-12-31T23:59" />
+                    <flux:error name="form.start_time" />
+                </flux:field>
+
+                <flux:field>
+                    <flux:label badge="{{ __('Required') }}">{{ __('End Time') }}</flux:label>
+                    <flux:input wire:model="form.end_time" type="datetime-local" max="9999-12-31T23:59" />
+                    <flux:error name="form.end_time" />
+                </flux:field>
+            </div>
+
+            <flux:field>
+                <flux:label>{{ __('Banner Image') }}</flux:label>
+                @if ($form->banner_image && is_string($form->banner_image) === false)
+                    <div class="mb-3 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <img src="{{ $form->banner_image->temporaryUrl() }}" alt="Preview" class="h-48 w-full object-cover" />
+                    </div>
+                @elseif (is_string($form->banner_image) && $form->banner_image)
+                    <div class="mb-3 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <img src="{{ asset(Storage::url($form->banner_image))}}" alt="Current banner" class="h-48 w-full object-cover" />
+                    </div>
+                @endif
+                <flux:input wire:model="form.banner_image" type="file" accept="image/*" />
+                <flux:description>{{ __('PNG, JPG up to 2MB.') }}</flux:description>
+                <flux:error name="form.banner_image" />
+            </flux:field>
+
+            <flux:field>
+                <flux:label>{{ __('Status') }}</flux:label>
+                <flux:select wire:model="form.status" placeholder="{{ __('Choose status...') }}">
+                    <flux:select.option value="draft">{{ __('Draft') }}</flux:select.option>
+                    <flux:select.option value="published">{{ __('Published') }}</flux:select.option>
+                    <flux:select.option value="cancelled">{{ __('Cancelled') }}</flux:select.option>
+                    <flux:select.option value="completed">{{ __('Completed') }}</flux:select.option>
+                </flux:select>
+                <flux:error name="form.status" />
+            </flux:field>
+
+            <div class="flex justify-end gap-2">
+                <flux:modal.close>
+                    <flux:button variant="ghost" type="button" wire:click="cancelCreate">{{ __('Cancel') }}</flux:button>
+                </flux:modal.close>
+                <flux:button type="submit" variant="primary" icon="plus">{{ __('Create Event') }}</flux:button>
+            </div>
+        </form>
+    </flux:modal>
+
+    <flux:modal name="edit-event" class="max-w-2xl" variant="flyout">
+        <form wire:submit="updateEvent" class="space-y-6">
+            <div>
+                <flux:heading size="lg">{{ __('Edit Event') }}</flux:heading>
+                <flux:subheading>{{ __('Update the event details and save changes.') }}</flux:subheading>
+            </div>
+
+            <flux:field>
+                <flux:label badge="{{ __('Required') }}">{{ __('Event Title') }}</flux:label>
+                <flux:input wire:model="form.title" placeholder="{{ __('Summer Music Festival 2026') }}" />
+                <flux:error name="form.title" />
+            </flux:field>
+
+            <flux:field>
+                <flux:label>{{ __('Description') }}</flux:label>
+                <flux:textarea wire:model="form.description" placeholder="{{ __('Tell attendees what makes this event special...') }}" rows="4" />
+                <flux:description>{{ __('Max 255 characters.') }}</flux:description>
+                <flux:error name="form.description" />
+            </flux:field>
+
+            <flux:field>
+                <flux:label badge="{{ __('Required') }}">{{ __('Location') }}</flux:label>
+                <flux:input wire:model="form.location" placeholder="{{ __('Manila, Philippines or Online') }}" icon="map-pin" />
+                <flux:error name="form.location" />
+            </flux:field>
+
+            <div class="grid gap-6 md:grid-cols-2">
+                <flux:field>
+                    <flux:label badge="{{ __('Required') }}">{{ __('Start Time') }}</flux:label>
+                    <flux:input wire:model="form.start_time" type="datetime-local" max="9999-12-31T23:59" />
+                    <flux:error name="form.start_time" />
+                </flux:field>
+
+                <flux:field>
+                    <flux:label badge="{{ __('Required') }}">{{ __('End Time') }}</flux:label>
+                    <flux:input wire:model="form.end_time" type="datetime-local" max="9999-12-31T23:59" />
+                    <flux:error name="form.end_time" />
+                </flux:field>
+            </div>
+
+            <flux:field>
+                <flux:label>{{ __('Banner Image') }}</flux:label>
+                @if ($form->banner_image && is_string($form->banner_image) === false)
+                    <div class="mb-3 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <img src="{{ $form->banner_image->temporaryUrl() }}" alt="Preview" class="h-48 w-full object-cover" />
+                    </div>
+                @elseif (is_string($form->banner_image) && $form->banner_image)
+                    <div class="mb-3 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                        <img src="{{ asset(Storage::url($form->banner_image))}}" alt="Current banner" class="h-48 w-full object-cover" />
+                    </div>
+                @endif
+                <flux:input wire:model="form.banner_image" type="file" accept="image/*" />
+                <flux:description>{{ __('PNG, JPG up to 2MB. Leave empty to keep current image.') }}</flux:description>
+                <flux:error name="form.banner_image" />
+            </flux:field>
+
+            <flux:field>
+                <flux:label>{{ __('Status') }}</flux:label>
+                <flux:select wire:model="form.status" placeholder="{{ __('Choose status...') }}">
+                    <flux:select.option value="draft">{{ __('Draft') }}</flux:select.option>
+                    <flux:select.option value="published">{{ __('Published') }}</flux:select.option>
+                    <flux:select.option value="cancelled">{{ __('Cancelled') }}</flux:select.option>
+                    <flux:select.option value="completed">{{ __('Completed') }}</flux:select.option>
+                </flux:select>
+                <flux:error name="form.status" />
+            </flux:field>
+
+            <div class="flex justify-end gap-2">
+                <flux:modal.close>
+                    <flux:button variant="ghost" type="button" wire:click="cancelEdit">{{ __('Cancel') }}</flux:button>
+                </flux:modal.close>
+                <flux:button type="submit" variant="primary" icon="pencil-square">{{ __('Save Changes') }}</flux:button>
+            </div>
+        </form>
+    </flux:modal>
 </div>

@@ -1,12 +1,20 @@
 <?php
 
 use App\Models\Event;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 new class extends Component
 {
+    
     public Event $event;
+
+    #[On('event-updated')]
+    public function reloadEventItem()
+    {
+        $this->event->refresh();
+    }
 };
 ?>
 

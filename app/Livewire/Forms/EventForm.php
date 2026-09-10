@@ -68,9 +68,27 @@ class EventForm extends Form
 
     public function update(Event $event): void
     {
-        $validated = $this->validate();
+        $isExistingString = is_string($this->banner_image);
+
+        $rules = $this->rules();
+
+        if ($isExistingString) {
+            $rules['banner_image'] = ['nullable', 'string'];
+        }
+
+        $validated = $this->validate($rules);
 
         $validated['slug'] = Str::slug($validated['title']);
+
+        if (isset($validated['banner_image']) && $validated['banner_image'] instanceof \Livewire\Features\SupportFileUploads\TemporaryUploadedFile) {
+            $validated['banner_image'] = $validated['banner_image']->store('events', 'public');
+        } elseif ($isExistingString) {
+            $validated['banner_image'] = $event->banner_image;
+        } elseif (empty($validated['banner_image'])) {
+            $validated['banner_image'] = $event->banner_image;
+        } elseif ($validated['banner_image'] instanceof \Illuminate\Http\UploadedFile) {
+            $validated['banner_image'] = $validated['banner_image']->store('events', 'public');
+        }
 
         $event->update($validated);
     }
