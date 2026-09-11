@@ -33,6 +33,14 @@
                     >
                         {{ __('Events') }}
                     </flux:sidebar.item>
+                    <flux:sidebar.item
+                        icon="ticket"
+                        :href="route('organizer.ticket-type')"
+                        :current="request()->routeIs('organizer.ticket-type')"
+                        wire:navigate
+                    >
+                        {{ __('Ticket Types') }}
+                    </flux:sidebar.item>
                 @endif
             </flux:sidebar.group>
         </flux:sidebar.nav>

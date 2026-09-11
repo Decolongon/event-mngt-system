@@ -9,27 +9,23 @@ use Livewire\Form;
 
 class TicketTypeForm extends Form
 {
-    #[Locked]
     public int $event_id;
 
     public string $name = '';
-
-    public string $description = '';
 
     public float $price = 0;
 
     public int $capacity = 0;
 
-    public $sale_start;
+    public $sales_start;
 
-    public $sale_end;
+    public $sales_end;
 
     protected function rules(): array
     {
         return [
             'event_id' => 'required|exists:events,id',
             'name' => 'required|string|max:100|min:3',
-            'description' => 'nullable|string|min:3|max:255',
             'price' => 'required|numeric|min:0',
             'capacity' => 'required|integer|min:0',
             'sales_start' => 'required|date',
@@ -40,7 +36,7 @@ class TicketTypeForm extends Form
     public function store(): void
     {
         $validate = $this->validate();
-
+        $validate['remaining_capacity'] = $validate['capacity'];
         TicketType::create($validate);
     }
 
@@ -53,11 +49,11 @@ class TicketTypeForm extends Form
 
     public function setTicketType(TicketType $ticketType): void
     {
+        $this->event_id = $ticketType->event_id;
         $this->name = $ticketType->name;
-        $this->description = $ticketType->description;
         $this->price = $ticketType->price;
         $this->capacity = $ticketType->capacity;
-        $this->sale_start = $ticketType->sale_start;
-        $this->sale_end = $ticketType->sale_end;
+        $this->sales_start = $ticketType->sales_start;
+        $this->sales_end = $ticketType->sales_end;
     }
 }
