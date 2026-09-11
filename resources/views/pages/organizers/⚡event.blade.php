@@ -44,7 +44,7 @@ new #[Title('Create Event')] class extends Component
         $this->form->store();
         $this->form->reset();
         unset($this->events);
-        $this->dispatch('event-updated');
+        $this->dispatch('event-updated')->to(component: 'event-item');
 
         Flux::modal('create-event')->close();
 
@@ -104,7 +104,7 @@ new #[Title('Create Event')] class extends Component
         $this->form->reset();
         unset($this->events);
 
-        $this->dispatch('event-updated');
+        $this->dispatch('event-updated')->to(component: 'event-item');
         Flux::modal('edit-event')->close();
 
         Flux::toast(
@@ -127,7 +127,7 @@ new #[Title('Create Event')] class extends Component
         Gate::authorize('deleteEvent', $event);
         $event->delete();
 
-        $this->dispatch('event-updated');
+        $this->dispatch('event-updated')->to(component: 'event-item');
         unset($this->events);
 
         Flux::toast(
