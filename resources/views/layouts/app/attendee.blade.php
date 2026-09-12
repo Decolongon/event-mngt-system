@@ -24,6 +24,14 @@
                 >
                     {{ __('Dashboard') }}
                 </flux:sidebar.item>
+                <flux:sidebar.item
+                    icon="ticket"
+                    :href="route('attendee.book-ticket')"
+                    :current="request()->routeIs('attendee.book-ticket')"
+                    wire:navigate
+                >
+                    {{ __('Book Tickets') }}
+                </flux:sidebar.item>
             </flux:sidebar.group>
         </flux:sidebar.nav>
 
