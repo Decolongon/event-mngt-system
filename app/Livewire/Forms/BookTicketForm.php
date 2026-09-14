@@ -27,12 +27,16 @@ class BookTicketForm extends Form
         ];
     }
 
-    public function store(): void
+    public function store(): \App\Models\Booking
     {
         $validated = $this->validate();
         $validated['booking_reference'] = $this->generateBookingRef();
         $validated['total_price'] = $this->calculateTotalPrice();
-        Auth::user()->bookings()->create($validated);
+
+        /** @var \App\Models\Booking $booking */
+        $booking = Auth::user()->bookings()->create($validated);
+
+        return $booking;
     }
 
     protected function generateBookingRef(): string
