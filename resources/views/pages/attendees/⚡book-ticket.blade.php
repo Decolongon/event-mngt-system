@@ -1,11 +1,15 @@
 <?php
 
 use App\Enums\EventStatus;
+use App\Enums\PaymentMethodEnum;
 use App\Livewire\Forms\BookTicketForm;
 use App\Models\Event;
 use App\Models\TicketType;
+use App\Services\PaymentIntentService;
 use Flux\Flux;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
@@ -20,6 +24,25 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
     public ?int $selectedEventId = null;
 
     public ?int $selectedTicketTypeId = null;
+
+    public string $payment_method = 'card';
+
+    public string $card_number = '';
+
+    public string $exp_month = '';
+
+    public string $exp_year = '';
+
+    public string $cvc = '';
+
+    public ?string $paymentRedirectUrl = null;
+
+    protected PaymentIntentService $service;
+
+    public function boot(PaymentIntentService $service)
+    {
+        $this->service = $service;
+    }
 
     #[Computed]
     public function events(): Collection
@@ -98,12 +121,23 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
         }
     }
 
+    public function selectPaymentMethod(string $method): void
+    {
+        if (! in_array($method, PaymentMethodEnum::values(), true)) {
+            return;
+        }
+
+        $this->payment_method = $method;
+    }
+
     public function cancelSelection(): void
     {
         $this->selectedEventId = null;
         $this->selectedTicketTypeId = null;
         $this->form->quantity = 1;
         $this->form->reset('event_id', 'ticket_type_id');
+        $this->payment_method = PaymentMethodEnum::CARD->value;
+        $this->reset('card_number', 'exp_month', 'exp_year', 'cvc', 'paymentRedirectUrl');
 
         unset($this->selectedEvent);
         unset($this->selectedTicketType);
@@ -154,11 +188,21 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
 
     public function bookTicket(): void
     {
-        $this->validate([
+        $rules = [
             'selectedEventId' => 'required|exists:events,id',
             'selectedTicketTypeId' => 'required|exists:ticket_types,id',
             'form.quantity' => 'required|integer|min:1|max:10',
-        ]);
+            'payment_method' => 'required|in:card,gcash,paymaya,grabpay',
+        ];
+
+        if ($this->payment_method === PaymentMethodEnum::CARD->value) {
+            $rules['card_number'] = ['required', 'string', 'regex:/^[0-9\s]+$/', 'min:13', 'max:19'];
+            $rules['exp_month'] = 'required|integer|min:1|max:12';
+            $rules['exp_year'] = 'required|integer|min:'.now()->year.'|max:'.(now()->year + 20);
+            $rules['cvc'] = 'required|string|digits_between:3,4';
+        }
+
+        $this->validate($rules);
 
         // Enforce per-person (10) and remaining capacity limit
         if ($this->selectedTicketType && $this->form->quantity > min(10, $this->selectedTicketType->remaining_capacity)) {
@@ -170,17 +214,120 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
         $this->form->event_id = $this->selectedEventId;
         $this->form->ticket_type_id = $this->selectedTicketTypeId;
 
-        $this->form->store();
+        // Transaction: booking + payment + PayMongo intent
+        DB::beginTransaction();
 
-        Flux::toast(
-            heading: __('Booking confirmed'),
-            text: __('Your ticket for :event has been booked successfully.', ['event' => $this->selectedEvent?->title]),
-            variant: 'success',
-        );
+        try {
+            $booking = $this->form->store();
+            $total = (float) $booking->total_price;
+
+            $status = 'successful';
+            $redirectUrl = null;
+
+            // Use PaymentIntentService if keys are configured, otherwise simulate
+            if (empty(config('paymongo.secret_key'))) {
+                Log::warning('PayMongo secret_key not set – simulating successful payment', ['booking_id' => $booking->id]);
+            } else {
+                try {
+                    $cardDetails = [];
+                    if ($this->payment_method === PaymentMethodEnum::CARD->value) {
+                        $cardDetails = [
+                            'card_number' => preg_replace('/\s+/', '', $this->card_number),
+                            'exp_month' => $this->exp_month,
+                            'exp_year' => $this->exp_year,
+                            'cvc' => $this->cvc,
+                        ];
+                    }
+
+                    $returnUrl = route('attendee.dashboard');
+
+                    $attached = $this->service->createAndAttach($total, $this->payment_method, $cardDetails, $returnUrl);
+
+                    // Extract status and next_action correctly (BaseModel flattens attributes)
+                    $all = $attached->getAttributes();
+                    $intentStatus = $all['status'] ?? ($attached->status ?? null);
+                    $nextAction = $all['next_action'] ?? null;
+
+                    if (is_array($nextAction) && isset($nextAction['redirect']['url'])) {
+                        $redirectUrl = $nextAction['redirect']['url'];
+                    } elseif (is_object($nextAction) && isset($nextAction->redirect->url)) {
+                        $redirectUrl = $nextAction->redirect->url;
+                    }
+
+                    if (in_array($intentStatus, ['succeeded', 'awaiting_next_action', 'awaiting_payment_method'], true)) {
+                        $status = 'successful';
+                        $this->paymentRedirectUrl = $redirectUrl;
+                    } else {
+                        $status = 'failed';
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('PayMongo payment failed', ['error' => $e->getMessage(), 'booking_id' => $booking->id]);
+                    $status = 'failed';
+                    // Save failed payment then rollback booking? Keep failed payment for audit
+                    $booking->payment()->create([
+                        'payment_method' => $this->payment_method,
+                        'amount' => $total,
+                        'status' => $status,
+                    ]);
+                    DB::commit();
+
+                    Flux::toast(
+                        heading: __('Payment failed'),
+                        text: $e->getMessage(),
+                        variant: 'danger',
+                    );
+
+                    return;
+                }
+            }
+
+            $booking->payment()->create([
+                'payment_method' => $this->payment_method,
+                'amount' => $total,
+                'status' => $status,
+            ]);
+
+            if ($status === 'successful') {
+                $booking->update(['status' => 'confirmed']);
+            }
+
+            DB::commit();
+
+            if ($status === 'failed') {
+                Flux::toast(
+                    heading: __('Payment failed'),
+                    text: __('Your booking was created but payment failed.'),
+                    variant: 'danger',
+                );
+                return;
+            }
+
+            $message = __('Your ticket for :event has been booked successfully.', ['event' => $this->selectedEvent?->title]);
+            if ($redirectUrl) {
+                $message .= ' '.__('Complete your payment via the redirect link.');
+            }
+
+            Flux::toast(
+                heading: __('Booking confirmed'),
+                text: $message,
+                variant: 'success',
+            );
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Booking transaction failed', ['error' => $e->getMessage()]);
+            Flux::toast(
+                heading: __('Booking failed'),
+                text: $e->getMessage(),
+                variant: 'danger',
+            );
+            return;
+        }
 
         $this->form->reset();
         $this->selectedEventId = null;
         $this->selectedTicketTypeId = null;
+        $this->payment_method = PaymentMethodEnum::CARD->value;
+        $this->reset('card_number', 'exp_month', 'exp_year', 'cvc');
 
         unset($this->events);
         unset($this->selectedEvent);
@@ -381,6 +528,87 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
                             @endforeach
                         </div>
 
+                        {{-- Payment Method --}}
+                        <div class="mt-6 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+                            <flux:heading size="sm">{{ __('Payment Method') }}</flux:heading>
+                            <flux:text class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ __('Choose how you want to pay. Card shows extra fields.') }}</flux:text>
+
+                            <div class="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+                                @php
+                                    $methods = [
+                                        'card' => ['label' => 'Card', 'icon' => 'credit-card', 'desc' => 'Visa / MC'],
+                                        'gcash' => ['label' => 'GCash', 'icon' => 'device-phone-mobile', 'desc' => 'E-wallet'],
+                                        'paymaya' => ['label' => 'PayMaya', 'icon' => 'wallet', 'desc' => 'Maya'],
+                                        'grabpay' => ['label' => 'GrabPay', 'icon' => 'banknotes', 'desc' => 'Grab'],
+                                    ];
+                                @endphp
+                                @foreach ($methods as $value => $meta)
+                                    @php $isActive = $this->payment_method === $value; @endphp
+                                    <button
+                                        type="button"
+                                        wire:click="selectPaymentMethod('{{ $value }}')"
+                                        class="flex flex-col items-center justify-center gap-1.5 rounded-xl border p-3 sm:p-4 text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 {{ $isActive ? 'border-violet-500 bg-violet-50 ring-1 ring-violet-500/20 dark:border-violet-600 dark:bg-violet-950/30' : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-600' }}"
+                                    >
+                                        <span class="flex size-8 items-center justify-center rounded-full {{ $isActive ? 'bg-violet-600 text-white' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400' }}">
+                                            <flux:icon :name="$meta['icon']" variant="outline" class="size-4" />
+                                        </span>
+                                        <span class="text-xs font-semibold sm:text-sm {{ $isActive ? 'text-violet-700 dark:text-violet-300' : 'text-zinc-900 dark:text-zinc-100' }}">{{ $meta['label'] }}</span>
+                                        <span class="hidden text-[11px] text-zinc-500 dark:text-zinc-400 sm:block">{{ $meta['desc'] }}</span>
+                                        @if ($isActive)
+                                            <flux:badge color="violet" size="sm" class="mt-0.5 hidden sm:inline-flex">{{ __('Selected') }}</flux:badge>
+                                        @endif
+                                    </button>
+                                @endforeach
+                            </div>
+                            <flux:error name="payment_method" />
+
+                            {{-- Card fields - shown only when card is selected --}}
+                            @if ($this->payment_method === 'card')
+                                <div class="mt-5 rounded-lg border border-zinc-200 bg-zinc-50/70 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
+                                    <div class="mb-3 flex items-center gap-2">
+                                        <flux:icon.credit-card class="size-4 text-zinc-500" />
+                                        <span class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Card Details') }}</span>
+                                    </div>
+                                    <div class="grid gap-4">
+                                        <flux:field>
+                                            <flux:label badge="{{ __('Required') }}">{{ __('Card Number') }}</flux:label>
+                                            <flux:input wire:model="card_number" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242" maxlength="19" />
+                                            <flux:error name="card_number" />
+                                        </flux:field>
+                                        <div class="grid grid-cols-3 gap-3 sm:gap-4">
+                                            <flux:field>
+                                                <flux:label badge="{{ __('Required') }}">{{ __('Exp. Month') }}</flux:label>
+                                                <flux:input wire:model="exp_month" type="number" inputmode="numeric" placeholder="12" min="1" max="12" />
+                                                <flux:error name="exp_month" />
+                                            </flux:field>
+                                            <flux:field>
+                                                <flux:label badge="{{ __('Required') }}">{{ __('Exp. Year') }}</flux:label>
+                                                <flux:input wire:model="exp_year" type="number" inputmode="numeric" placeholder="{{ now()->year + 1 }}" min="{{ now()->year }}" max="{{ now()->year + 20 }}" />
+                                                <flux:error name="exp_year" />
+                                            </flux:field>
+                                            <flux:field>
+                                                <flux:label badge="{{ __('Required') }}">{{ __('CVC') }}</flux:label>
+                                                <flux:input wire:model="cvc" type="text" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4" />
+                                                <flux:error name="cvc" />
+                                            </flux:field>
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
+                                <div class="mt-4 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/30">
+                                    <flux:text class="text-xs text-zinc-600 dark:text-zinc-400">
+                                        @if ($this->payment_method === 'gcash')
+                                            {{ __('You will be redirected to GCash to complete the payment.') }}
+                                        @elseif ($this->payment_method === 'paymaya')
+                                            {{ __('You will be redirected to PayMaya (Maya) to complete the payment.') }}
+                                        @elseif ($this->payment_method === 'grabpay')
+                                            {{ __('You will be redirected to GrabPay to complete the payment.') }}
+                                        @endif
+                                    </flux:text>
+                                </div>
+                            @endif
+                        </div>
+
                         {{-- Quantity & Summary --}}
                         <div class="mt-6 rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
                             <div class="grid gap-6 sm:grid-cols-2 sm:items-end">
@@ -472,6 +700,19 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
                             @error('form.ticket_type_id') <flux:text color="red" size="sm" class="mt-2">{{ $message }}</flux:text> @enderror
                             @error('form.quantity') <flux:text color="red" size="sm" class="mt-2">{{ $message }}</flux:text> @enderror
                         </div>
+
+                        @if ($this->paymentRedirectUrl)
+                            <div class="mt-4 rounded-xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-800 dark:bg-violet-950/30">
+                                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <flux:icon.arrow-top-right-on-square class="size-4 text-violet-600" />
+                                        <flux:text class="text-sm font-medium text-violet-900 dark:text-violet-200">{{ __('Complete your payment') }}</flux:text>
+                                    </div>
+                                    <flux:button :href="$this->paymentRedirectUrl" target="_blank" variant="primary" size="sm" iconTrailing="arrow-top-right-on-square">{{ __('Open Payment Link') }}</flux:button>
+                                </div>
+                                <flux:text class="mt-2 break-all text-xs text-violet-700 dark:text-violet-300">{{ $this->paymentRedirectUrl }}</flux:text>
+                            </div>
+                        @endif
                     @endif
                 </div>
             </flux:card>
