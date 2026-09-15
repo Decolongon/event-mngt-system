@@ -1,15 +1,24 @@
 <?php
 
 use App\Models\Event;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 new class extends Component
 {
     public Event $event;
 
+    #[Reactive]
     public $isSelected;
 
     public $statusVal;
+
+    #[Computed()]
+    public function countTickets(): int
+    {
+        return $this->event->ticketTypes()->count();
+    }
 };
 ?>
 
@@ -61,7 +70,7 @@ new class extends Component
 
         <div class="mt-4 flex items-center justify-between gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800">
             <flux:text class="text-xs text-zinc-500">
-                {{ $event->ticketTypes->count() }} {{ Str::plural('ticket type', $event->ticketTypes->count()) }}
+                {{ $this->countTickets }} {{ Str::plural('ticket type', $this->countTickets) }}
             </flux:text>
             {{ $slots['select-event'] }}
         </div>
