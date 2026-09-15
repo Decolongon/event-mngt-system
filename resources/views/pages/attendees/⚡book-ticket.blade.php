@@ -16,9 +16,13 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use App\Concerns\HasUnset;
+use App\Services\BookTicketService;
 
 new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Component
 {
+    use HasUnset;
+
     public BookTicketForm $form;
 
     public ?int $selectedEventId = null;
@@ -38,30 +42,24 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
     public ?string $paymentRedirectUrl = null;
 
     protected PaymentIntentService $service;
+    protected BookTicketService $book_ticket_service;
 
-    public function boot(PaymentIntentService $service)
+    public function boot(PaymentIntentService $service, BookTicketService $bookTicketService)
     {
         $this->service = $service;
+        $this->book_ticket_service = $bookTicketService;
     }
 
     #[Computed]
     public function events(): Collection
     {
-        return Event::query()
-            ->where('status', EventStatus::Published->value)
-            ->latest()
-            ->get();
+        return $this->book_ticket_service->getEvents();
     }
 
     #[Computed]
     public function getTicketTypes(Event $event): Collection
     {
-        return TicketType::query()
-            ->where('remaining_capacity', '>', 0)
-            ->where('sales_start', '<=', now())
-            ->where('sales_end', '>=', now())
-            ->where('event_id', $event->id)
-            ->get();
+        return $this->book_ticket_service->getTicketTypes($event);
     }
 
     #[Computed]
@@ -93,9 +91,7 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
         $this->form->quantity = 1;
 
         // Bust computed caches - computed properties are memoized per-request
-        unset($this->selectedEvent);
-        unset($this->selectedTicketType);
-        unset($this->ticketTypes);
+        $this->unsetAttributes(['selectedEvent', 'ticketTypes', 'selectedTicketType']);
     }
 
     public function selectTicketType(int $ticketTypeId): void
@@ -108,7 +104,7 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
             ->findOrFail($ticketTypeId);
 
         $this->selectedTicketTypeId = $ticketType->id;
-        unset($this->selectedTicketType);
+        $this->unsetAttributes(['selectedTicketType']);
 
         // reset quantity if exceeds capacity or per-person limit (10)
         $max = min(10, $ticketType->remaining_capacity);
@@ -132,16 +128,11 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
 
     public function cancelSelection(): void
     {
-        $this->selectedEventId = null;
-        $this->selectedTicketTypeId = null;
         $this->form->quantity = 1;
         $this->form->reset('event_id', 'ticket_type_id');
         $this->payment_method = PaymentMethodEnum::CARD->value;
-        $this->reset('card_number', 'exp_month', 'exp_year', 'cvc', 'paymentRedirectUrl');
-
-        unset($this->selectedEvent);
-        unset($this->selectedTicketType);
-        unset($this->ticketTypes);
+        $this->reset('card_number', 'exp_month', 'exp_year', 'cvc', 'paymentRedirectUrl','selectedEventId','selectedTicketTypeId');
+        $this->unsetAttributes(['selectedEvent', 'ticketTypes', 'selectedTicketType']);
     }
 
     public function updatedFormQuantity(): void
@@ -328,15 +319,9 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
         }
 
         $this->form->reset();
-        $this->selectedEventId = null;
-        $this->selectedTicketTypeId = null;
         $this->payment_method = PaymentMethodEnum::CARD->value;
-        $this->reset('card_number', 'exp_month', 'exp_year', 'cvc');
-
-        unset($this->events);
-        unset($this->selectedEvent);
-        unset($this->selectedTicketType);
-        unset($this->ticketTypes);
+        $this->reset('card_number', 'exp_month', 'exp_year', 'cvc','selectedEventId','selectedTicketTypeId');
+        $this->unsetAttributes(['events', 'selectedEvent', 'ticketTypes', 'selectedTicketType']);
     }
 };
 ?>
