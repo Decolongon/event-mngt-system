@@ -3,30 +3,38 @@
 use App\Models\Event;
 use Livewire\Component;
 
-new class extends Component {
+new class extends Component
+{
     public Event $event;
+
     public $isSelected;
+
     public $statusVal;
 };
 ?>
 
-<div wire:key="event-card-{{ $event->id }}"
-    class="group flex flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition dark:bg-zinc-900 {{ $isSelected ? 'border-violet-500 ring-2 ring-violet-500/20 dark:border-violet-500' : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600' }}">
+<div
+    wire:key="event-card-{{ $event->id }}"
+    class="group flex flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition dark:bg-zinc-900 {{ $isSelected ? 'border-violet-500 ring-2 ring-violet-500/20 dark:border-violet-500' : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600' }}"
+>
     {{-- Banner --}}
     <div class="relative h-40 w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
         @if ($event->banner_image)
-            <img src="{{ asset(Storage::url($event->banner_image)) }}" alt="{{ $event->title }}"
-                class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
+            <img
+                src="{{ asset(Storage::url($event->banner_image)) }}"
+                alt="{{ $event->title }}"
+                class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+            />
         @else
             <div class="flex h-full w-full items-center justify-center">
                 <flux:icon.photo variant="outline" class="size-10 text-zinc-300 dark:text-zinc-600" />
             </div>
         @endif
-        <div class="absolute left-3 top-3 flex items-center gap-2">
+        <div class="absolute top-3 left-3 flex items-center gap-2">
             <flux:badge color="green" size="sm">{{ ucfirst($statusVal) }}</flux:badge>
         </div>
         @if ($isSelected)
-            <div class="absolute right-3 top-3">
+            <div class="absolute top-3 right-3">
                 <flux:badge color="violet" size="sm" icon="check-circle">{{ __('Selected') }}</flux:badge>
             </div>
         @endif
@@ -43,8 +51,7 @@ new class extends Component {
             </span>
             <span class="inline-flex items-center gap-1.5">
                 <flux:icon.calendar variant="micro" class="size-3.5 shrink-0" />
-                <span>{{ $event->start_time?->format('M j, Y g:i A') }} —
-                    {{ $event->end_time?->format('M j, Y') }}</span>
+                <span>{{ $event->start_time?->format('M j, Y g:i A') }} — {{ $event->end_time?->format('M j, Y') }}</span>
             </span>
         </div>
 
@@ -56,11 +63,6 @@ new class extends Component {
             <flux:text class="text-xs text-zinc-500">
                 {{ $event->ticketTypes->count() }} {{ Str::plural('ticket type', $event->ticketTypes->count()) }}
             </flux:text>
-            {{-- <flux:button wire:click="selectEvent({{ $event->id }})"
-                variant="{{ $isSelected ? 'primary' : 'ghost' }}" size="sm"
-                iconTrailing="{{ $isSelected ? 'check' : 'ticket' }}" class="shrink-0">
-                {{ $isSelected ? __('Selected') : __('Get Ticket Now') }}
-            </flux:button> --}}
             {{ $slots['select-event'] }}
         </div>
     </div>

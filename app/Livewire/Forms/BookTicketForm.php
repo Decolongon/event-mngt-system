@@ -6,15 +6,18 @@ use App\Models\Booking;
 use App\Models\TicketType;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
-use Livewire\Attributes\Validate;
 use Livewire\Form;
 
 class BookTicketForm extends Form
 {
     public ?int $event_id;
+
     public ?int $ticket_type_id;
+
     public ?int $quantity = 1;
+
     public ?float $total_price = 0;
+
     public string $booking_reference = '';
 
     protected function rules(): array
@@ -27,13 +30,13 @@ class BookTicketForm extends Form
         ];
     }
 
-    public function store(): \App\Models\Booking
+    public function store(): Booking
     {
         $validated = $this->validate();
         $validated['booking_reference'] = $this->generateBookingRef();
         $validated['total_price'] = $this->calculateTotalPrice();
 
-        /** @var \App\Models\Booking $booking */
+        /** @var Booking $booking */
         $booking = Auth::user()->bookings()->create($validated);
 
         return $booking;
@@ -49,7 +52,7 @@ class BookTicketForm extends Form
 
             $numbers = str_pad((string) random_int(0, 99999), 5, '0', STR_PAD_LEFT);
 
-            $reference = $letters . $numbers;
+            $reference = $letters.$numbers;
         } while (Booking::where('booking_reference', $reference)->exists());
 
         return $reference;
@@ -58,6 +61,7 @@ class BookTicketForm extends Form
     protected function calculateTotalPrice(): float
     {
         $this->total_price = TicketType::findOrFail($this->ticket_type_id)->price * $this->quantity;
+
         return $this->total_price;
     }
 }

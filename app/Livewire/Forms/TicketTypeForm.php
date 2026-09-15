@@ -3,8 +3,6 @@
 namespace App\Livewire\Forms;
 
 use App\Models\TicketType;
-use Livewire\Attributes\Locked;
-use Livewire\Attributes\Validate;
 use Livewire\Form;
 
 class TicketTypeForm extends Form

@@ -173,10 +173,7 @@ new #[Title('Create Event')] class extends Component
                                 <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" class="shrink-0" />
                                 <flux:menu>
                                     @can(\App\Enums\EventPermissionEnum::UPDATE_EVENTS->value)
-                                        <flux:menu.item
-                                            wire:click="editEvent({{ $event->id }})"
-                                            icon="pencil-square"
-                                        >
+                                        <flux:menu.item wire:click="editEvent({{ $event->id }})" icon="pencil-square">
                                             {{ __('Edit') }}</flux:menu.item>
                                     @endcan
 

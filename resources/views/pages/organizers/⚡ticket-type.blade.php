@@ -129,7 +129,12 @@ new #[Title('Ticket Types')] class extends Component
                 <flux:heading size="xl" level="1">{{ __('Ticket Types') }}</flux:heading>
                 <flux:subheading>{{ __('Create ticket types for your published events.') }}</flux:subheading>
             </div>
-            <flux:button wire:click="openCreateModal" variant="primary" icon="plus" class="shrink-0">{{ __('Create Ticket Type') }}</flux:button>
+            <flux:button
+                wire:click="openCreateModal"
+                variant="primary"
+                icon="plus"
+                class="shrink-0"
+            >{{ __('Create Ticket Type') }}</flux:button>
         </div>
     </section>
 
@@ -146,13 +151,18 @@ new #[Title('Ticket Types')] class extends Component
                         <flux:dropdown position="bottom" align="end">
                             <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" class="shrink-0" />
                             <flux:menu>
-                                <flux:menu.item wire:click="editTicketType({{ $ticketType->id }})" icon="pencil-square">{{ __('Edit') }}</flux:menu.item>
+                                <flux:menu.item
+                                    wire:click="editTicketType({{ $ticketType->id }})"
+                                    icon="pencil-square"
+                                >
+                                    {{ __('Edit') }}</flux:menu.item>
                                 <flux:menu.item
                                     wire:click="deleteTicketType({{ $ticketType->id }})"
                                     wire:confirm="{{ __('Are you sure you want to delete this ticket type? This cannot be undone.') }}"
                                     icon="trash"
                                     variant="danger"
-                                >{{ __('Delete') }}</flux:menu.item>
+                                >
+                                    {{ __('Delete') }}</flux:menu.item>
                             </flux:menu>
                         </flux:dropdown>
                     </livewire:slot>
@@ -224,7 +234,11 @@ new #[Title('Ticket Types')] class extends Component
 
             <div class="flex justify-end gap-2">
                 <flux:modal.close>
-                    <flux:button variant="ghost" type="button" wire:click="cancelCreate">{{ __('Cancel') }}</flux:button>
+                    <flux:button
+                        variant="ghost"
+                        type="button"
+                        wire:click="cancelCreate"
+                    >{{ __('Cancel') }}</flux:button>
                 </flux:modal.close>
                 <flux:button type="submit" variant="primary" icon="plus">{{ __('Create Ticket Type') }}</flux:button>
             </div>
@@ -253,7 +267,6 @@ new #[Title('Ticket Types')] class extends Component
                 <flux:input wire:model="form.name" placeholder="{{ __('VIP, Early Bird, General Admission') }}" />
                 <flux:error name="form.name" />
             </flux:field>
-
 
             <div class="grid gap-6 md:grid-cols-2">
                 <flux:field>
