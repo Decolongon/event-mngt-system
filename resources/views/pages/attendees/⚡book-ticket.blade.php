@@ -19,8 +19,7 @@ use Livewire\Component;
 use App\Concerns\HasUnset;
 use App\Services\BookTicketService;
 
-new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Component
-{
+new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Component {
     use HasUnset;
 
     public BookTicketForm $form;
@@ -96,12 +95,7 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
 
     public function selectTicketType(int $ticketTypeId): void
     {
-        $ticketType = TicketType::query()
-            ->where('remaining_capacity', '>', 0)
-            ->where('sales_start', '<=', now())
-            ->where('sales_end', '>=', now())
-            ->where('event_id', $this->selectedEventId)
-            ->findOrFail($ticketTypeId);
+        $ticketType = TicketType::query()->where('remaining_capacity', '>', 0)->where('sales_start', '<=', now())->where('sales_end', '>=', now())->where('event_id', $this->selectedEventId)->findOrFail($ticketTypeId);
 
         $this->selectedTicketTypeId = $ticketType->id;
         $this->unsetAttributes(['selectedTicketType']);
@@ -119,7 +113,7 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
 
     public function selectPaymentMethod(string $method): void
     {
-        if (! in_array($method, PaymentMethodEnum::values(), true)) {
+        if (!in_array($method, PaymentMethodEnum::values(), true)) {
             return;
         }
 
@@ -131,7 +125,7 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
         $this->form->quantity = 1;
         $this->form->reset('event_id', 'ticket_type_id');
         $this->payment_method = PaymentMethodEnum::CARD->value;
-        $this->reset('card_number', 'exp_month', 'exp_year', 'cvc', 'paymentRedirectUrl','selectedEventId','selectedTicketTypeId');
+        $this->reset('card_number', 'exp_month', 'exp_year', 'cvc', 'paymentRedirectUrl', 'selectedEventId', 'selectedTicketTypeId');
         $this->unsetAttributes(['selectedEvent', 'ticketTypes', 'selectedTicketType']);
     }
 
@@ -189,7 +183,7 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
         if ($this->payment_method === PaymentMethodEnum::CARD->value) {
             $rules['card_number'] = ['required', 'string', 'regex:/^[0-9\s]+$/', 'min:13', 'max:19'];
             $rules['exp_month'] = 'required|integer|min:1|max:12';
-            $rules['exp_year'] = 'required|integer|min:'.now()->year.'|max:'.(now()->year + 20);
+            $rules['exp_year'] = 'required|integer|min:' . now()->year . '|max:' . (now()->year + 20);
             $rules['cvc'] = 'required|string|digits_between:3,4';
         }
 
@@ -262,11 +256,7 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
                     ]);
                     DB::commit();
 
-                    Flux::toast(
-                        heading: __('Payment failed'),
-                        text: $e->getMessage(),
-                        variant: 'danger',
-                    );
+                    Flux::toast(heading: __('Payment failed'), text: $e->getMessage(), variant: 'danger');
 
                     return;
                 }
@@ -285,24 +275,16 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
             DB::commit();
 
             if ($status === 'failed') {
-                Flux::toast(
-                    heading: __('Payment failed'),
-                    text: __('Your booking was created but payment failed.'),
-                    variant: 'danger',
-                );
+                Flux::toast(heading: __('Payment failed'), text: __('Your booking was created but payment failed.'), variant: 'danger');
                 return;
             }
 
             $message = __('Your ticket for :event has been booked successfully.', ['event' => $this->selectedEvent?->title]);
             if ($redirectUrl) {
-                $message .= ' '.__('Complete your payment via the redirect link.');
+                $message .= ' ' . __('Complete your payment via the redirect link.');
             }
 
-            Flux::toast(
-                heading: __('Booking confirmed'),
-                text: $message,
-                variant: 'success',
-            );
+            Flux::toast(heading: __('Booking confirmed'), text: $message, variant: 'success');
 
             if ($this->paymentRedirectUrl) {
                 Flux::modal('payment-redirect')->show();
@@ -310,17 +292,13 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Booking transaction failed', ['error' => $e->getMessage()]);
-            Flux::toast(
-                heading: __('Booking failed'),
-                text: $e->getMessage(),
-                variant: 'danger',
-            );
+            Flux::toast(heading: __('Booking failed'), text: $e->getMessage(), variant: 'danger');
             return;
         }
 
         $this->form->reset();
         $this->payment_method = PaymentMethodEnum::CARD->value;
-        $this->reset('card_number', 'exp_month', 'exp_year', 'cvc','selectedEventId','selectedTicketTypeId');
+        $this->reset('card_number', 'exp_month', 'exp_year', 'cvc', 'selectedEventId', 'selectedTicketTypeId');
         $this->unsetAttributes(['events', 'selectedEvent', 'ticketTypes', 'selectedTicketType']);
     }
 };
@@ -339,16 +317,20 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
     <section class="w-full">
         <div class="mb-4 flex items-center justify-between">
             <flux:heading>{{ __('Available Events') }}</flux:heading>
-            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">{{ $this->events->count() }} {{ Str::plural('event', $this->events->count()) }}</flux:text>
+            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">{{ $this->events->count() }}
+                {{ Str::plural('event', $this->events->count()) }}</flux:text>
         </div>
 
         @if ($this->events->isEmpty())
-            <div class="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/50 p-8 text-center dark:border-zinc-700 dark:bg-zinc-900/50">
-                <div class="mx-auto flex size-10 items-center justify-center rounded-full border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
+            <div
+                class="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/50 p-8 text-center dark:border-zinc-700 dark:bg-zinc-900/50">
+                <div
+                    class="mx-auto flex size-10 items-center justify-center rounded-full border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
                     <flux:icon.calendar class="size-5 text-zinc-400" />
                 </div>
                 <flux:heading size="sm" class="mt-3">{{ __('No events available') }}</flux:heading>
-                <flux:text class="mt-1 text-sm">{{ __('There are no published events at the moment. Please check back later.') }}</flux:text>
+                <flux:text class="mt-1 text-sm">
+                    {{ __('There are no published events at the moment. Please check back later.') }}</flux:text>
             </div>
         @else
             <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -357,68 +339,15 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
                         $isSelected = $this->selectedEventId === $event->id;
                         $statusVal = $event->status instanceof \BackedEnum ? $event->status->value : $event->status;
                     @endphp
-                    <div
-                        wire:key="event-card-{{ $event->id }}"
-                        class="group flex flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition dark:bg-zinc-900 {{ $isSelected ? 'border-violet-500 ring-2 ring-violet-500/20 dark:border-violet-500' : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600' }}"
-                    >
-                        {{-- Banner --}}
-                        <div class="relative h-40 w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-                            @if ($event->banner_image)
-                                <img
-                                    src="{{ asset(Storage::url($event->banner_image)) }}"
-                                    alt="{{ $event->title }}"
-                                    class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-                                />
-                            @else
-                                <div class="flex h-full w-full items-center justify-center">
-                                    <flux:icon.photo variant="outline" class="size-10 text-zinc-300 dark:text-zinc-600" />
-                                </div>
-                            @endif
-                            <div class="absolute left-3 top-3 flex items-center gap-2">
-                                <flux:badge color="green" size="sm">{{ ucfirst($statusVal) }}</flux:badge>
-                            </div>
-                            @if ($isSelected)
-                                <div class="absolute right-3 top-3">
-                                    <flux:badge color="violet" size="sm" icon="check-circle">{{ __('Selected') }}</flux:badge>
-                                </div>
-                            @endif
-                        </div>
-
-                        {{-- Content --}}
-                        <div class="flex flex-1 flex-col p-4">
-                            <h3 class="line-clamp-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ $event->title }}</h3>
-
-                            <div class="mt-1.5 flex flex-col gap-1 text-xs text-zinc-500 dark:text-zinc-400">
-                                <span class="inline-flex items-center gap-1.5">
-                                    <flux:icon.map-pin variant="micro" class="size-3.5 shrink-0" />
-                                    <span class="truncate">{{ $event->location }}</span>
-                                </span>
-                                <span class="inline-flex items-center gap-1.5">
-                                    <flux:icon.calendar variant="micro" class="size-3.5 shrink-0" />
-                                    <span>{{ $event->start_time?->format('M j, Y g:i A') }} — {{ $event->end_time?->format('M j, Y') }}</span>
-                                </span>
-                            </div>
-
-                            @if ($event->description)
-                                <p class="mt-3 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-300">{{ $event->description }}</p>
-                            @endif
-
-                            <div class="mt-4 flex items-center justify-between gap-2 border-t border-zinc-100 pt-4 dark:border-zinc-800">
-                                <flux:text class="text-xs text-zinc-500">
-                                    {{ $event->ticketTypes->count() }} {{ Str::plural('ticket type', $event->ticketTypes->count()) }}
-                                </flux:text>
-                                <flux:button
-                                    wire:click="selectEvent({{ $event->id }})"
-                                    variant="{{ $isSelected ? 'primary' : 'ghost' }}"
-                                    size="sm"
-                                    iconTrailing="{{ $isSelected ? 'check' : 'ticket' }}"
-                                    class="shrink-0"
-                                >
-                                    {{ $isSelected ? __('Selected') : __('Get Ticket Now') }}
-                                </flux:button>
-                            </div>
-                        </div>
-                    </div>
+                    <livewire:book-ticket-item :event="$event" :isSelected="$isSelected" :statusVal="$statusVal" :wire:key="'event-card-'.$event->id">
+                        <livewire:slot name="select-event">
+                            <flux:button wire:click="selectEvent({{ $event->id }})"
+                                variant="{{ $isSelected ? 'primary' : 'ghost' }}" size="sm"
+                                iconTrailing="{{ $isSelected ? 'check' : 'ticket' }}" class="shrink-0">
+                                {{ $isSelected ? __('Selected') : __('Get Ticket Now') }}
+                            </flux:button>
+                        </livewire:slot>
+                    </livewire:book-ticket-item>
                 @endforeach
             </div>
         @endif
@@ -433,21 +362,29 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div class="flex gap-4 min-w-0 flex-1">
                         @if ($selectedEvent->banner_image)
-                            <img src="{{ Storage::url($selectedEvent->banner_image) }}" alt="{{ $selectedEvent->title }}" class="hidden h-16 w-16 shrink-0 rounded-lg object-cover sm:block" />
+                            <img src="{{ Storage::url($selectedEvent->banner_image) }}"
+                                alt="{{ $selectedEvent->title }}"
+                                class="hidden h-16 w-16 shrink-0 rounded-lg object-cover sm:block" />
                         @endif
                         <div class="min-w-0">
                             <flux:heading size="lg">{{ $selectedEvent->title }}</flux:heading>
                             <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                                <span class="inline-flex items-center gap-1"><flux:icon.map-pin variant="micro" class="size-3.5" />{{ $selectedEvent->location }}</span>
+                                <span class="inline-flex items-center gap-1"><flux:icon.map-pin variant="micro"
+                                        class="size-3.5" />{{ $selectedEvent->location }}</span>
                                 <span class="mx-1.5 text-zinc-300 dark:text-zinc-600">·</span>
-                                <span class="inline-flex items-center gap-1"><flux:icon.calendar variant="micro" class="size-3.5" />{{ $selectedEvent->start_time?->format('M j, Y g:i A') }}</span>
+                                <span class="inline-flex items-center gap-1">
+                                    <flux:icon.calendar variant="micro" class="size-3.5" />
+                                    {{ $selectedEvent->start_time?->format('M j, Y g:i A') }}
+                                </span>
                             </flux:text>
-                            @if($selectedEvent->description)
-                                <flux:text class="mt-2 line-clamp-2 text-sm">{{ $selectedEvent->description }}</flux:text>
+                            @if ($selectedEvent->description)
+                                <flux:text class="mt-2 line-clamp-2 text-sm">{{ $selectedEvent->description }}
+                                </flux:text>
                             @endif
                         </div>
                     </div>
-                    <flux:button wire:click="cancelSelection" variant="ghost" size="sm" icon="x-mark">{{ __('Change Event') }}</flux:button>
+                    <flux:button wire:click="cancelSelection" variant="ghost" size="sm" icon="x-mark">
+                        {{ __('Change Event') }}</flux:button>
                 </div>
 
                 <flux:separator class="my-6" />
@@ -457,59 +394,67 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
                 <div>
                     <div class="mb-4 flex items-center justify-between">
                         <flux:heading size="sm">{{ __('Choose Your Ticket') }}</flux:heading>
-                        <flux:text class="text-xs text-zinc-500">{{ $ticketTypes->count() }} {{ __('available') }}</flux:text>
+                        <flux:text class="text-xs text-zinc-500">{{ $ticketTypes->count() }} {{ __('available') }}
+                        </flux:text>
                     </div>
 
                     @if ($ticketTypes->isEmpty())
-                        <div class="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center dark:border-amber-900/50 dark:bg-amber-950/30">
+                        <div
+                            class="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center dark:border-amber-900/50 dark:bg-amber-950/30">
                             <flux:icon.exclamation-triangle class="mx-auto size-6 text-amber-500" />
                             <flux:heading size="sm" class="mt-2">{{ __('No tickets available') }}</flux:heading>
-                            <flux:text class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{{ __('There are no tickets on sale for this event right now, or they are sold out.') }}</flux:text>
+                            <flux:text class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                                {{ __('There are no tickets on sale for this event right now, or they are sold out.') }}
+                            </flux:text>
                         </div>
                     @else
                         <div class="grid gap-3">
                             @foreach ($ticketTypes as $ticketType)
                                 @php $isTicketSelected = $this->selectedTicketTypeId === $ticketType->id; @endphp
-                                <button
-                                    type="button"
-                                    wire:click="selectTicketType({{ $ticketType->id }})"
+                                <button type="button" wire:click="selectTicketType({{ $ticketType->id }})"
                                     wire:key="tt-{{ $ticketType->id }}"
-                                    class="w-full rounded-xl border p-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 {{ $isTicketSelected ? 'border-violet-500 bg-violet-50/70 ring-1 ring-violet-500/20 dark:border-violet-600 dark:bg-violet-950/20' : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:hover:bg-zinc-800' }}"
-                                >
+                                    class="w-full rounded-xl border p-4 text-left transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 {{ $isTicketSelected ? 'border-violet-500 bg-violet-50/70 ring-1 ring-violet-500/20 dark:border-violet-600 dark:bg-violet-950/20' : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-600 dark:hover:bg-zinc-800' }}">
                                     <div class="flex items-start justify-between gap-4">
                                         <div class="min-w-0 flex-1">
                                             <div class="flex items-center gap-2">
                                                 <span
-                                                    class="flex size-5 shrink-0 items-center justify-center rounded-full border {{ $isTicketSelected ? 'border-violet-600 bg-violet-600 text-white' : 'border-zinc-300 bg-white dark:border-zinc-600 dark:bg-zinc-800' }}"
-                                                >
+                                                    class="flex size-5 shrink-0 items-center justify-center rounded-full border {{ $isTicketSelected ? 'border-violet-600 bg-violet-600 text-white' : 'border-zinc-300 bg-white dark:border-zinc-600 dark:bg-zinc-800' }}">
                                                     @if ($isTicketSelected)
                                                         <flux:icon.check variant="micro" class="size-3" />
                                                     @endif
                                                 </span>
-                                                <p class="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ $ticketType->name }}</p>
+                                                <p
+                                                    class="truncate text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                                    {{ $ticketType->name }}</p>
                                                 @if ($isTicketSelected)
-                                                    <flux:badge color="violet" size="sm">{{ __('Selected') }}</flux:badge>
+                                                    <flux:badge color="violet" size="sm">{{ __('Selected') }}
+                                                    </flux:badge>
                                                 @endif
                                             </div>
-                                            <div class="ml-7 mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
-                                                <span class="inline-flex items-center gap-1 font-medium text-zinc-900 dark:text-zinc-100">
+                                            <div
+                                                class="ml-7 mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+                                                <span
+                                                    class="inline-flex items-center gap-1 font-medium text-zinc-900 dark:text-zinc-100">
                                                     <flux:icon.currency-dollar variant="micro" class="size-3.5" />
                                                     {{ number_format($ticketType->price, 2) }}
                                                 </span>
                                                 <span class="hidden text-zinc-300 sm:inline dark:text-zinc-600">·</span>
                                                 <span class="inline-flex items-center gap-1">
                                                     <flux:icon.users variant="micro" class="size-3.5" />
-                                                    {{ __(':count remaining', ['count' => $ticketType->remaining_capacity]) }} / {{ $ticketType->capacity }}
+                                                    {{ __(':count remaining', ['count' => $ticketType->remaining_capacity]) }}
+                                                    / {{ $ticketType->capacity }}
                                                 </span>
                                                 <span class="hidden text-zinc-300 sm:inline dark:text-zinc-600">·</span>
                                                 <span class="inline-flex items-center gap-1">
                                                     <flux:icon.clock variant="micro" class="size-3.5" />
-                                                    {{ $ticketType->sales_start?->format('M j, g:i A') }} – {{ $ticketType->sales_end?->format('M j, g:i A') }}
+                                                    {{ $ticketType->sales_start?->format('M j, g:i A') }} –
+                                                    {{ $ticketType->sales_end?->format('M j, g:i A') }}
                                                 </span>
                                             </div>
                                         </div>
                                         <div class="shrink-0 text-right">
-                                            <p class="text-sm font-bold text-zinc-900 dark:text-zinc-100">₱{{ number_format($ticketType->price, 2) }}</p>
+                                            <p class="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                                                ₱{{ number_format($ticketType->price, 2) }}</p>
                                             <p class="text-xs text-zinc-500">per ticket</p>
                                         </div>
                                     </div>
@@ -518,33 +463,40 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
                         </div>
 
                         {{-- Payment Method --}}
-                        <div class="mt-6 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
+                        <div
+                            class="mt-6 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-800">
                             <flux:heading size="sm">{{ __('Payment Method') }}</flux:heading>
-                            <flux:text class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{{ __('Choose how you want to pay. Card shows extra fields.') }}</flux:text>
+                            <flux:text class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                                {{ __('Choose how you want to pay. Card shows extra fields.') }}</flux:text>
 
                             <div class="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
                                 @php
                                     $methods = [
                                         'card' => ['label' => 'Card', 'icon' => 'credit-card', 'desc' => 'Visa / MC'],
-                                        'gcash' => ['label' => 'GCash', 'icon' => 'device-phone-mobile', 'desc' => 'E-wallet'],
+                                        'gcash' => [
+                                            'label' => 'GCash',
+                                            'icon' => 'device-phone-mobile',
+                                            'desc' => 'E-wallet',
+                                        ],
                                         'paymaya' => ['label' => 'PayMaya', 'icon' => 'wallet', 'desc' => 'Maya'],
                                         'grabpay' => ['label' => 'GrabPay', 'icon' => 'banknotes', 'desc' => 'Grab'],
                                     ];
                                 @endphp
                                 @foreach ($methods as $value => $meta)
                                     @php $isActive = $this->payment_method === $value; @endphp
-                                    <button
-                                        type="button"
-                                        wire:click="selectPaymentMethod('{{ $value }}')"
-                                        class="flex flex-col items-center justify-center gap-1.5 rounded-xl border p-3 sm:p-4 text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 {{ $isActive ? 'border-violet-500 bg-violet-50 ring-1 ring-violet-500/20 dark:border-violet-600 dark:bg-violet-950/30' : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-600' }}"
-                                    >
-                                        <span class="flex size-8 items-center justify-center rounded-full {{ $isActive ? 'bg-violet-600 text-white' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400' }}">
+                                    <button type="button" wire:click="selectPaymentMethod('{{ $value }}')"
+                                        class="flex flex-col items-center justify-center gap-1.5 rounded-xl border p-3 sm:p-4 text-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 {{ $isActive ? 'border-violet-500 bg-violet-50 ring-1 ring-violet-500/20 dark:border-violet-600 dark:bg-violet-950/30' : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-600' }}">
+                                        <span
+                                            class="flex size-8 items-center justify-center rounded-full {{ $isActive ? 'bg-violet-600 text-white' : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400' }}">
                                             <flux:icon :name="$meta['icon']" variant="outline" class="size-4" />
                                         </span>
-                                        <span class="text-xs font-semibold sm:text-sm {{ $isActive ? 'text-violet-700 dark:text-violet-300' : 'text-zinc-900 dark:text-zinc-100' }}">{{ $meta['label'] }}</span>
-                                        <span class="hidden text-[11px] text-zinc-500 dark:text-zinc-400 sm:block">{{ $meta['desc'] }}</span>
+                                        <span
+                                            class="text-xs font-semibold sm:text-sm {{ $isActive ? 'text-violet-700 dark:text-violet-300' : 'text-zinc-900 dark:text-zinc-100' }}">{{ $meta['label'] }}</span>
+                                        <span
+                                            class="hidden text-[11px] text-zinc-500 dark:text-zinc-400 sm:block">{{ $meta['desc'] }}</span>
                                         @if ($isActive)
-                                            <flux:badge color="violet" size="sm" class="mt-0.5 hidden sm:inline-flex">{{ __('Selected') }}</flux:badge>
+                                            <flux:badge color="violet" size="sm"
+                                                class="mt-0.5 hidden sm:inline-flex">{{ __('Selected') }}</flux:badge>
                                         @endif
                                     </button>
                                 @endforeach
@@ -553,38 +505,51 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
 
                             {{-- Card fields - shown only when card is selected --}}
                             @if ($this->payment_method === 'card')
-                                <div class="mt-5 rounded-lg border border-zinc-200 bg-zinc-50/70 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
+                                <div
+                                    class="mt-5 rounded-lg border border-zinc-200 bg-zinc-50/70 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
                                     <div class="mb-3 flex items-center gap-2">
                                         <flux:icon.credit-card class="size-4 text-zinc-500" />
-                                        <span class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Card Details') }}</span>
+                                        <span
+                                            class="text-sm font-medium text-zinc-900 dark:text-zinc-100">{{ __('Card Details') }}</span>
                                     </div>
                                     <div class="grid gap-4">
                                         <flux:field>
-                                            <flux:label badge="{{ __('Required') }}">{{ __('Card Number') }}</flux:label>
-                                            <flux:input wire:model="card_number" inputmode="numeric" autocomplete="cc-number" placeholder="4242 4242 4242 4242" maxlength="19" />
+                                            <flux:label badge="{{ __('Required') }}">{{ __('Card Number') }}
+                                            </flux:label>
+                                            <flux:input wire:model="card_number" inputmode="numeric"
+                                                autocomplete="cc-number" placeholder="4242 4242 4242 4242"
+                                                maxlength="19" />
                                             <flux:error name="card_number" />
                                         </flux:field>
                                         <div class="grid grid-cols-3 gap-3 sm:gap-4">
                                             <flux:field>
-                                                <flux:label badge="{{ __('Required') }}">{{ __('Exp. Month') }}</flux:label>
-                                                <flux:input wire:model="exp_month" type="number" inputmode="numeric" placeholder="12" min="1" max="12" />
+                                                <flux:label badge="{{ __('Required') }}">{{ __('Exp. Month') }}
+                                                </flux:label>
+                                                <flux:input wire:model="exp_month" type="number" inputmode="numeric"
+                                                    placeholder="12" min="1" max="12" />
                                                 <flux:error name="exp_month" />
                                             </flux:field>
                                             <flux:field>
-                                                <flux:label badge="{{ __('Required') }}">{{ __('Exp. Year') }}</flux:label>
-                                                <flux:input wire:model="exp_year" type="number" inputmode="numeric" placeholder="{{ now()->year + 1 }}" min="{{ now()->year }}" max="{{ now()->year + 20 }}" />
+                                                <flux:label badge="{{ __('Required') }}">{{ __('Exp. Year') }}
+                                                </flux:label>
+                                                <flux:input wire:model="exp_year" type="number" inputmode="numeric"
+                                                    placeholder="{{ now()->year + 1 }}" min="{{ now()->year }}"
+                                                    max="{{ now()->year + 20 }}" />
                                                 <flux:error name="exp_year" />
                                             </flux:field>
                                             <flux:field>
-                                                <flux:label badge="{{ __('Required') }}">{{ __('CVC') }}</flux:label>
-                                                <flux:input wire:model="cvc" type="text" inputmode="numeric" autocomplete="cc-csc" placeholder="123" maxlength="4" />
+                                                <flux:label badge="{{ __('Required') }}">{{ __('CVC') }}
+                                                </flux:label>
+                                                <flux:input wire:model="cvc" type="text" inputmode="numeric"
+                                                    autocomplete="cc-csc" placeholder="123" maxlength="4" />
                                                 <flux:error name="cvc" />
                                             </flux:field>
                                         </div>
                                     </div>
                                 </div>
                             @else
-                                <div class="mt-4 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/30">
+                                <div
+                                    class="mt-4 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900/30">
                                     <flux:text class="text-xs text-zinc-600 dark:text-zinc-400">
                                         @if ($this->payment_method === 'gcash')
                                             {{ __('You will be redirected to GCash to complete the payment.') }}
@@ -599,33 +564,25 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
                         </div>
 
                         {{-- Quantity & Summary --}}
-                        <div class="mt-6 rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
+                        <div
+                            class="mt-6 rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 dark:border-zinc-700 dark:bg-zinc-900/50">
                             <div class="grid gap-6 sm:grid-cols-2 sm:items-end">
                                 <flux:field>
                                     <flux:label badge="{{ __('Required') }}">{{ __('Quantity') }}</flux:label>
                                     @php $maxPerPerson = $this->selectedTicketType ? min(10, $this->selectedTicketType->remaining_capacity) : 10; @endphp
                                     <div class="flex items-center gap-3">
-                                        <flux:button
-                                            wire:click="subtractQuantity"
-                                            variant="ghost"
-                                            size="sm"
+                                        <flux:button wire:click="subtractQuantity" variant="ghost" size="sm"
                                             icon="minus"
                                             :disabled="$this->selectedTicketTypeId === null || $this->form->quantity <= 1"
-                                            aria-label="{{ __('Decrease quantity') }}"
-                                            class="shrink-0"
-                                        />
-                                        <div class="flex h-9 min-w-[4rem] items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 {{ $this->selectedTicketTypeId === null ? 'opacity-50' : '' }}">
+                                            aria-label="{{ __('Decrease quantity') }}" class="shrink-0" />
+                                        <div
+                                            class="flex h-9 min-w-[4rem] items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 {{ $this->selectedTicketTypeId === null ? 'opacity-50' : '' }}">
                                             {{ $this->form->quantity }}
                                         </div>
-                                        <flux:button
-                                            wire:click="addQuantity"
-                                            variant="ghost"
-                                            size="sm"
+                                        <flux:button wire:click="addQuantity" variant="ghost" size="sm"
                                             icon="plus"
                                             :disabled="$this->selectedTicketTypeId === null || $this->form->quantity >= $maxPerPerson"
-                                            aria-label="{{ __('Increase quantity') }}"
-                                            class="shrink-0"
-                                        />
+                                            aria-label="{{ __('Increase quantity') }}" class="shrink-0" />
                                         <flux:text class="text-xs text-zinc-500 dark:text-zinc-400">
                                             / {{ $maxPerPerson }} {{ __('max') }}
                                         </flux:text>
@@ -642,7 +599,8 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
                                     <flux:error name="selectedEventId" />
                                 </flux:field>
 
-                                <div class="rounded-lg bg-white p-4 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+                                <div
+                                    class="rounded-lg bg-white p-4 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
                                     <div class="flex items-center justify-between text-sm">
                                         <span class="text-zinc-500 dark:text-zinc-400">{{ __('Ticket Price') }}</span>
                                         <span class="font-medium text-zinc-900 dark:text-zinc-100">
@@ -655,11 +613,13 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
                                     </div>
                                     <div class="mt-1 flex items-center justify-between text-sm">
                                         <span class="text-zinc-500 dark:text-zinc-400">{{ __('Quantity') }}</span>
-                                        <span class="font-medium text-zinc-900 dark:text-zinc-100">× {{ $this->form->quantity }}</span>
+                                        <span class="font-medium text-zinc-900 dark:text-zinc-100">×
+                                            {{ $this->form->quantity }}</span>
                                     </div>
                                     <flux:separator class="my-3" />
                                     <div class="flex items-center justify-between">
-                                        <span class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Total') }}</span>
+                                        <span
+                                            class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{{ __('Total') }}</span>
                                         <span class="text-lg font-bold text-violet-600 dark:text-violet-400">
                                             @if ($this->selectedTicketType)
                                                 ₱{{ number_format($this->selectedTicketType->price * $this->form->quantity, 2) }}
@@ -672,22 +632,25 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
                             </div>
 
                             <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                                <flux:button wire:click="cancelSelection" variant="ghost">{{ __('Cancel') }}</flux:button>
-                                <flux:button
-                                    wire:click="bookTicket"
-                                    variant="primary"
-                                    icon="ticket"
-                                    :disabled="$this->selectedTicketTypeId === null"
-                                    wire:loading.attr="disabled"
-                                >
-                                    <span wire:loading.remove wire:target="bookTicket">{{ __('Confirm Booking') }}</span>
+                                <flux:button wire:click="cancelSelection" variant="ghost">{{ __('Cancel') }}
+                                </flux:button>
+                                <flux:button wire:click="bookTicket" variant="primary" icon="ticket"
+                                    :disabled="$this->selectedTicketTypeId === null" wire:loading.attr="disabled">
+                                    <span wire:loading.remove
+                                        wire:target="bookTicket">{{ __('Confirm Booking') }}</span>
                                     <span wire:loading wire:target="bookTicket">{{ __('Booking…') }}</span>
                                 </flux:button>
                             </div>
 
-                            @error('form.event_id') <flux:text color="red" size="sm" class="mt-2">{{ $message }}</flux:text> @enderror
-                            @error('form.ticket_type_id') <flux:text color="red" size="sm" class="mt-2">{{ $message }}</flux:text> @enderror
-                            @error('form.quantity') <flux:text color="red" size="sm" class="mt-2">{{ $message }}</flux:text> @enderror
+                            @error('form.event_id')
+                                <flux:text color="red" size="sm" class="mt-2">{{ $message }}</flux:text>
+                            @enderror
+                            @error('form.ticket_type_id')
+                                <flux:text color="red" size="sm" class="mt-2">{{ $message }}</flux:text>
+                            @enderror
+                            @error('form.quantity')
+                                <flux:text color="red" size="sm" class="mt-2">{{ $message }}</flux:text>
+                            @enderror
                         </div>
 
                     @endif
@@ -704,17 +667,21 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
                     <flux:icon.arrow-top-right-on-square class="size-5 text-violet-600" />
                     {{ __('Complete your payment') }}
                 </flux:heading>
-                <flux:subheading>{{ __('Your booking was confirmed. Complete your payment via the link below.') }}</flux:subheading>
+                <flux:subheading>{{ __('Your booking was confirmed. Complete your payment via the link below.') }}
+                </flux:subheading>
             </div>
 
             @if ($this->paymentRedirectUrl)
-                <div class="rounded-xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-800 dark:bg-violet-950/30">
-                    <flux:text class="break-all text-sm text-violet-700 dark:text-violet-300">{{ $this->paymentRedirectUrl }}</flux:text>
+                <div
+                    class="rounded-xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-800 dark:bg-violet-950/30">
+                    <flux:text class="break-all text-sm text-violet-700 dark:text-violet-300">
+                        {{ $this->paymentRedirectUrl }}</flux:text>
                     <div class="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                         <flux:modal.close>
                             <flux:button variant="ghost">{{ __('Close') }}</flux:button>
                         </flux:modal.close>
-                        <flux:button :href="$this->paymentRedirectUrl" target="_blank" variant="primary" iconTrailing="arrow-top-right-on-square">{{ __('Open Payment Link') }}</flux:button>
+                        <flux:button :href="$this->paymentRedirectUrl" target="_blank" variant="primary"
+                            iconTrailing="arrow-top-right-on-square">{{ __('Open Payment Link') }}</flux:button>
                     </div>
                 </div>
             @endif
