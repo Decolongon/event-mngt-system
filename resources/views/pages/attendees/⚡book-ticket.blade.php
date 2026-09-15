@@ -312,6 +312,10 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
                 text: $message,
                 variant: 'success',
             );
+
+            if ($this->paymentRedirectUrl) {
+                Flux::modal('payment-redirect')->show();
+            }
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Booking transaction failed', ['error' => $e->getMessage()]);
@@ -701,21 +705,34 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
                             @error('form.quantity') <flux:text color="red" size="sm" class="mt-2">{{ $message }}</flux:text> @enderror
                         </div>
 
-                        @if ($this->paymentRedirectUrl)
-                            <div class="mt-4 rounded-xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-800 dark:bg-violet-950/30">
-                                <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                    <div class="flex items-center gap-2">
-                                        <flux:icon.arrow-top-right-on-square class="size-4 text-violet-600" />
-                                        <flux:text class="text-sm font-medium text-violet-900 dark:text-violet-200">{{ __('Complete your payment') }}</flux:text>
-                                    </div>
-                                    <flux:button :href="$this->paymentRedirectUrl" target="_blank" variant="primary" size="sm" iconTrailing="arrow-top-right-on-square">{{ __('Open Payment Link') }}</flux:button>
-                                </div>
-                                <flux:text class="mt-2 break-all text-xs text-violet-700 dark:text-violet-300">{{ $this->paymentRedirectUrl }}</flux:text>
-                            </div>
-                        @endif
                     @endif
                 </div>
             </flux:card>
         </section>
     @endif
+
+    {{-- Payment Redirect Modal --}}
+    <flux:modal name="payment-redirect" class="max-w-lg">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg" class="flex items-center gap-2">
+                    <flux:icon.arrow-top-right-on-square class="size-5 text-violet-600" />
+                    {{ __('Complete your payment') }}
+                </flux:heading>
+                <flux:subheading>{{ __('Your booking was confirmed. Complete your payment via the link below.') }}</flux:subheading>
+            </div>
+
+            @if ($this->paymentRedirectUrl)
+                <div class="rounded-xl border border-violet-200 bg-violet-50 p-4 dark:border-violet-800 dark:bg-violet-950/30">
+                    <flux:text class="break-all text-sm text-violet-700 dark:text-violet-300">{{ $this->paymentRedirectUrl }}</flux:text>
+                    <div class="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                        <flux:modal.close>
+                            <flux:button variant="ghost">{{ __('Close') }}</flux:button>
+                        </flux:modal.close>
+                        <flux:button :href="$this->paymentRedirectUrl" target="_blank" variant="primary" iconTrailing="arrow-top-right-on-square">{{ __('Open Payment Link') }}</flux:button>
+                    </div>
+                </div>
+            @endif
+        </div>
+    </flux:modal>
 </div>
