@@ -66,21 +66,13 @@ new #[Title('Book Ticket')] #[Layout('layouts.app.attendee')] class extends Comp
     #[Computed]
     public function selectedEvent(): ?Event
     {
-        if ($this->selectedEventId === null) {
-            return null;
-        }
-
-        return Event::find($this->selectedEventId);
+        return $this->selectedEventId ? Event::findOrFail($this->selectedEventId) : null;
     }
 
     #[Computed]
     public function selectedTicketType(): ?TicketType
     {
-        if ($this->selectedTicketTypeId === null) {
-            return null;
-        }
-
-        return TicketType::find($this->selectedTicketTypeId);
+        return $this->selectedTicketTypeId ? TicketType::findOrFail($this->selectedTicketTypeId) : null;
     }
 
     public function selectEvent(int $eventId): void
