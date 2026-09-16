@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\BookTicketPermissionEnum;
 use App\Enums\EventPermissionEnum;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -37,7 +38,10 @@ class DatabaseSeeder extends Seeder
         $updateStatus = Permission::firstOrCreate(['name' => EventPermissionEnum::UPDATE_STATUS_EVENTS->value, 'guard_name' => 'web']);
 
         $organizer->syncPermissions([$create, $view, $update, $delete, $updateStatus]);
-        $attendee->syncPermissions([$view]);
+
+        $book_ticket = Permission::firstOrCreate(['name' => BookTicketPermissionEnum::BOOK_TICKET->value, 'guard_name' => 'web']);
+
+        $attendee->syncPermissions([$view, $book_ticket]);
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 

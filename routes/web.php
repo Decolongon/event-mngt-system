@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\BookTicketPermissionEnum;
 use App\Enums\EventPermissionEnum;
 use Illuminate\Support\Facades\Route;
 
@@ -14,7 +15,7 @@ Route::middleware(['auth', 'verified', 'role:organizer'])->group(function () {
 
 Route::middleware(['auth', 'verified', 'role:attendee'])->group(function () {
     Route::livewire('attendee/dashboard', 'pages::attendees.dashboard')->name('attendee.dashboard');
-    Route::livewire('attendee/book-ticket', 'pages::attendees.book-ticket')->name('attendee.book-ticket');
+    Route::livewire('attendee/book-ticket', 'pages::attendees.book-ticket')->name('attendee.book-ticket')->middleware('permission:'.BookTicketPermissionEnum::BOOK_TICKET->value);
 });
 
 require __DIR__.'/settings.php';
