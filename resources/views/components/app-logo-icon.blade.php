@@ -1,8 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 42" {{ $attributes }}>
-    <path
-        fill="currentColor"
-        fill-rule="evenodd"
-        clip-rule="evenodd"
-        d="M17.2 5.633 8.6.855 0 5.633v26.51l16.2 9 16.2-9v-8.442l7.6-4.223V9.856l-8.6-4.777-8.6 4.777V18.3l-5.6 3.111V5.633ZM38 18.301l-5.6 3.11v-6.157l5.6-3.11V18.3Zm-1.06-7.856-5.54 3.078-5.54-3.079 5.54-3.078 5.54 3.079ZM24.8 18.3v-6.157l5.6 3.111v6.158L24.8 18.3Zm-1 1.732 5.54 3.078-13.14 7.302-5.54-3.078 13.14-7.3v-.002Zm-16.2 7.89 7.6 4.222V38.3L2 30.966V7.92l5.6 3.111v16.892ZM8.6 9.3 3.06 6.222 8.6 3.143l5.54 3.08L8.6 9.3Zm21.8 15.51-13.2 7.334V38.3l13.2-7.334v-6.156ZM9.6 11.034l5.6-3.11v14.6l-5.6 3.11v-14.6Z"
-    />
+{{-- Generic event icon: calendar with star/ticket --}}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" {{ $attributes }}>
+    {{-- Calendar body --}}
+    <rect x="4" y="6" width="16" height="13.5" rx="2" fill="currentColor" opacity="0.95"/>
+    <rect x="4" y="6" width="16" height="5" rx="2" fill="white" opacity="0.92"/>
+    <rect x="4" y="10" width="16" height="1.2" fill="white" opacity="0.92"/>
+    {{-- Rings --}}
+    <rect x="7.5" y="3.5" width="2" height="4" rx="1" fill="currentColor"/>
+    <rect x="14.5" y="3.5" width="2" height="4" rx="1" fill="currentColor"/>
+    {{-- Star center --}}
+    <path d="M12 11.8l1 2 2 .3-1.5 1.45.35 2.05L12 16.6l-1.85 1 .35-2.05L9 14.1l2-.3 1-2z" fill="white"/>
+    {{-- Dots --}}
+    <circle cx="7.5" cy="14.5" r="0.9" fill="white" opacity="0.6"/>
+    <circle cx="16.5" cy="14.5" r="0.9" fill="white" opacity="0.6"/>
+    <circle cx="7.5" cy="17.2" r="0.9" fill="white" opacity="0.6"/>
+    <circle cx="16.5" cy="17.2" r="0.9" fill="white" opacity="0.6"/>
 </svg>

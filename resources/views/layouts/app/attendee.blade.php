@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     @include('partials.head')
 </head>
-<body class="min-h-screen bg-white dark:bg-zinc-800">
+<body class="min-h-screen bg-[#fdf8f0] dark:bg-stone-900">
     <flux:sidebar
         sticky
         collapsible="mobile"
-        class="border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900"
+        class="border-e border-amber-100 bg-white dark:border-stone-800 dark:bg-stone-900"
     >
         <flux:sidebar.header>
             <x-app-logo :sidebar="true" href="{{ route('attendee.dashboard') }}" wire:navigate />
@@ -63,6 +63,11 @@
         <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
 
         <flux:spacer />
+
+        <button type="button" onclick="(() => { const isDark = document.documentElement.classList.contains('dark'); const next = isDark ? 'light' : 'dark'; window.Flux.applyAppearance(next); try { window.Flux.appearance = next; } catch {} })()" class="inline-flex size-9 items-center justify-center rounded-full border border-amber-200 bg-white text-stone-600 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300" aria-label="Toggle theme">
+            <svg class="size-4 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+            <svg class="hidden size-4 dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        </button>
 
         <flux:dropdown position="top" align="end">
             <flux:profile :initials="auth()->user()->initials()" icon-trailing="chevron-down" />
